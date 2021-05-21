@@ -27,11 +27,11 @@ czyNormalizowacDane = True
 
 
 def lvq(daneUczace, daneTestowe, iloscNeuronow, wspUczenia, iloscEpok):
-    zestawDanych = trenuj(daneUczace, iloscNeuronow,
+    zestawDanychZmodyfikowanych = forward(daneUczace, iloscNeuronow,
                           wspUczenia, iloscEpok)  # trenuj zestaw danych
     prognozy = list()  # zainicjalizuj pustą listę prognoz
     for wektor in daneTestowe:  # dla każdego wektora w danych testowych
-        output = prognoza(zestawDanych, wektor)  # dopasuj najbliższy wektor
+        output = prognoza(zestawDanychZmodyfikowanych, wektor)  # dopasuj klasyfikator
         prognozy.append(output)  # dodaj wynik do listy prognoz
     return prognozy
 
@@ -53,10 +53,10 @@ def odlegloscEuklidesowa(wektor1, wektor2):
     return dystans**(1/2)
 
 
-def dopasujNajlepszyWektor(dane, wektor_podstawowy):
+def dopasujNajlepszyWektor(wylosowaneNeurony, wektor_podstawowy):
     # wyszukuje najlepiej dopasowany wektor ze zbioru danych dla podanego wektora podstawowego
     dystanse = list()  # zainicjuj pustą listę
-    for wektor in dane:  # dla kazdego wektora w podanym zbiorze
+    for wektor in wylosowaneNeurony:  # dla kazdego wektora w podanym zbiorze
         # oblicz odległość do podanego wektora
         dist = odlegloscEuklidesowa(wektor, wektor_podstawowy)
         dystanse.append((wektor, dist))  # i dodaj obliczną wartość do listy
@@ -66,29 +66,28 @@ def dopasujNajlepszyWektor(dane, wektor_podstawowy):
     return dystanse[0][0]
 
 
-def losowyWektorZDanych(dane):
+def losowyWektorZDanych(daneUczace):
     # dla podanego zbioru danych losuje jego losowy wektor
-    iloscRekordow = len(dane)  # ile rekordow jest w zbiorze
-    return dane[randrange(iloscRekordow)]  # wylosuj wektor w przedziale
+    iloscRekordow = len(daneUczace)  # ile rekordow jest w zbiorze 
+    return daneUczace[randrange(iloscRekordow)] # wylosuj wektor w przedziale
 
 
-def trenuj(dane, iloscWektorow, wspUczenia, epoki):
+def forward(dane, iloscNeuronow, wspUczenia, epoki):
     # procedura uczenia zestawu wektorów ze zbioru danych
-    wylosowane = [losowyWektorZDanych(dane) for i in range(iloscWektorow)] # wylosowanie z listy zbiorów podanej ilości wektorów
+    wylosowaneNeurony = [losowyWektorZDanych(dane) for i in range(iloscNeuronow)] # wylosowanie z listy zbiorów podanej ilości neuronow
     for epoch in range(epoki):  # dla podanej ilości epok
         # aktualny współczynnik uczenia
         rate = wspUczenia * (1.0-(epoch/float(epoki)))
         for wektor in dane:  # dla każdego wektora w podanym zbiorze danych
-            # dopasuj najlepszy wektor z wylosowanego zbioru danych
-            bmu = dopasujNajlepszyWektor(wylosowane, wektor)
+            # dopasuj najlepszy wektor z wylosowanego zbioru neuronów
+            bmu = dopasujNajlepszyWektor(wylosowaneNeurony, wektor)
             for i in range(len(wektor)-1):  # dla każdej cechy
-                error = wektor[i] - bmu[i]  # oblicz dokładność
-                if bmu[-1] == wektor[-1]: # jeśli najlepszy wektor dla aktualnego wektora ma taką samą klasę
-                    bmu[i] += rate * error # to dodaj do najlepszego dokładność
+                error = wektor[i] - bmu[i]  # oblicz różnicę cech
+                if bmu[-1] == wektor[-1]: # jeśli najbliższy neuron dla aktualnego wektora ma taką samą klasę
+                    bmu[i] += rate * error # to przybliż neuron do wektora
                 else:
-                    bmu[i] -= rate * error  # to oddal od najlepszej wartości
-        # print('>epoka=%d, wsp_uczenia=%.3f, error=%.3f'%(epoch, rate, mse))
-    return wylosowane
+                    bmu[i] -= rate * error  # to oddal neuron od wektora
+    return wylosowaneNeurony
 
 
 def prognoza(zestawDanych, wektor):
@@ -122,7 +121,7 @@ def wskaznikPrecyzjiDopasowania(wlasciwy, otrzymany):
     poprawnie = 0  # zainicjalizuj początkową wartość poprawności danych
     for i in range(len(wlasciwy)):  # dla każdego z klasyfikatorów
         blad += (otrzymany[i] - wlasciwy[i])**2 # oblicz różnicę klasyfikatorów 
-        if wlasciwy[i] == otrzymany[i]: # sprawdź czy otrzymany wynik pokrywa się z danymi uczącymi
+        if wlasciwy[i] == abs(round(float(otrzymany[i]))): # sprawdź czy otrzymany wynik pokrywa się z danymi uczącymi
             poprawnie += 1  # jeśli tak to zwiększ poprawność
     return [poprawnie / float(len(wlasciwy)) * 100, blad / float(len(wlasciwy))]
 
@@ -157,9 +156,9 @@ def rysujGraf(x,y,PK, MSE):
     rgb1 = ls.shade(PK, cmap=cm.brg, vert_exag=0.1, blend_mode='soft') # określ kolory wykresu
     rgb2 = ls.shade(MSE, cmap=cm.summer, vert_exag=0.1, blend_mode='soft') # określ kolory wykresu
     ax.plot_surface(x, y, PK, rstride=1, cstride=1, facecolors=rgb1,
-                        linewidth=1, antialiased=False, shade=False) # utwórz wykres
+                        linewidth=0, antialiased=False, shade=False) # utwórz wykres
     bx.plot_surface(x, y, MSE, rstride=1, cstride=1, facecolors=rgb2,
-                        linewidth=1, antialiased=False, shade=False)
+                        linewidth=0, antialiased=False, shade=False)
     ax.view_init(30, -135) # ustaw początkowy punkt widzenia
     bx.view_init(30, -135) # ustaw początkowy punkt widzenia
     ax.set_xlabel('współczynnik uczenia') # tytuł osi x wykresu PK
@@ -171,6 +170,7 @@ def rysujGraf(x,y,PK, MSE):
     ax.set_title('PK(S1, lr)') # tytuł wykresu PK
     bx.set_title('MSE(S1, lr)') # tytuł wykresu MSE
     ax.set_zlim(0, 100) #  określ przedział osi Z dla PK od 0 do 100
+    ax.zaxis.set_major_formatter('{x:.00f}%')
     plt.show() # wyświetl graf
 
 ########
@@ -222,11 +222,12 @@ for i in range(len(Pn)):
     # łączenie znormalizowanego zbioru cech ze zbiorem klasyfikatorów
     zbiorDanych[i] = (Pn[i] if czyNormalizowacDane else P[i]) + [T[i]]
 
+
 # *** Ewaluacja algorytmu ***
 seed(1)
 iloscPrzedzialow = 5 # ilość przedziałów na które zostanie podzielony zbiór danych (potrzebne do walidacji krzyżowej)
 wspolczynnikUczenia = [0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99] # lista współczynników uczenia do przetestowania
-iloscEpok = 10 # ilość powtórzeń przez które uczone są dane
+iloscEpok = 2 # ilość powtórzeń przez które uczone są dane
 iloscNeuronow = range(10, 51, 10) # lista ilości neuronów do przetestowania
 
 najlepszeKombinacjePK = list() # inicjalizacja listy z najlepszymi wynikami
