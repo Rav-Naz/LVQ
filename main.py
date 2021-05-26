@@ -78,12 +78,12 @@ def forward(dane, iloscNeuronow, wspUczenia, epoki):
     for epoch in range(epoki):  # dla podanej ilości epok
         # aktualny współczynnik uczenia
         rate = wspUczenia * (1.0-(epoch/float(epoki)))
-        for wektor in dane:  # dla każdego wektora w podanym zbiorze danych
+        for wektorTreningowy in dane:  # dla każdego wektora w podanym zbiorze danych
             # dopasuj najlepszy wektor z wylosowanego zbioru neuronów
-            bmu = dopasujNajlepszyWektor(wylosowaneNeurony, wektor)
-            for i in range(len(wektor)-1):  # dla każdej cechy
-                error = wektor[i] - bmu[i]  # oblicz różnicę cech
-                if bmu[-1] == wektor[-1]: # jeśli najbliższy neuron dla aktualnego wektora ma taką samą klasę
+            bmu = dopasujNajlepszyWektor(wylosowaneNeurony, wektorTreningowy)
+            for i in range(len(wektorTreningowy)-1):  # dla każdej cechy
+                error = wektorTreningowy[i] - bmu[i]  # oblicz różnicę cech
+                if bmu[-1] == wektorTreningowy[-1]: # jeśli najbliższy neuron dla aktualnego wektora ma taką samą klasę
                     bmu[i] += rate * error # to przybliż neuron do wektora
                 else:
                     bmu[i] -= rate * error  # to oddal neuron od wektora
@@ -161,14 +161,14 @@ def rysujGraf(x,y,PK, MSE):
                         linewidth=0, antialiased=False, shade=False)
     ax.view_init(30, -135) # ustaw początkowy punkt widzenia
     bx.view_init(30, -135) # ustaw początkowy punkt widzenia
-    ax.set_xlabel('współczynnik uczenia') # tytuł osi x wykresu PK
-    ax.set_ylabel('liczba neuronów') # tytuł osi y wykresu PK
+    ax.set_xlabel('ilość epok') # tytuł osi x wykresu PK
+    ax.set_ylabel('ilość przedziałów') # tytuł osi y wykresu PK
     ax.set_zlabel('poprawność klasyfikacji') # tytuł osi z wykresu PK
-    bx.set_xlabel('współczynnik uczenia') # tytuł osi x wykresu MSE
-    bx.set_ylabel('liczba neuronów') # tytuł osi y wykresu MSE
+    bx.set_xlabel('ilość epok') # tytuł osi x wykresu MSE
+    bx.set_ylabel('ilość przedziałów') # tytuł osi y wykresu MSE
     bx.set_zlabel('błąd średniokwadratowy') # tytuł osi z wykresu MSE
-    ax.set_title('PK(S1, lr)') # tytuł wykresu PK
-    bx.set_title('MSE(S1, lr)') # tytuł wykresu MSE
+    ax.set_title('PK(ilość epok, ilość przedziałów)') # tytuł wykresu PK
+    bx.set_title('MSE(ilość epok, ilość przedziałów)') # tytuł wykresu MSE
     ax.set_zlim(0, 100) #  określ przedział osi Z dla PK od 0 do 100
     ax.zaxis.set_major_formatter('{x:.00f}%')
     plt.show() # wyświetl graf
@@ -225,10 +225,10 @@ for i in range(len(Pn)):
 
 # *** Ewaluacja algorytmu ***
 seed(1)
-iloscPrzedzialow = 5 # ilość przedziałów na które zostanie podzielony zbiór danych (potrzebne do walidacji krzyżowej)
-wspolczynnikUczenia = [0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99] # lista współczynników uczenia do przetestowania
-iloscEpok = 2 # ilość powtórzeń przez które uczone są dane
-iloscNeuronow = range(10, 51, 10) # lista ilości neuronów do przetestowania
+iloscPrzedzialow = [2,3,5,10,15] # ilość przedziałów na które zostanie podzielony zbiór danych (potrzebne do walidacji krzyżowej)
+wspolczynnikUczenia = 0.8 #[0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99] # lista współczynników uczenia do przetestowania
+iloscEpok = range(1, 101, 2) # ilość powtórzeń przez które uczone są dane
+iloscNeuronow = 20 #range(20, 101, 5) # lista ilości neuronów do przetestowania
 
 najlepszeKombinacjePK = list() # inicjalizacja listy z najlepszymi wynikami
 najlepszeKombinacjeMSE = list() # inicjalizacja listy z najlepszymi wynikami
@@ -238,33 +238,36 @@ najmniejszyBlad = float('inf') # zmienna do określenia najmniejszego błedu śr
 zPK = list() # zmienna przetrzymująca obliczone parametry dla wykresu PK
 zMSE = list() # zmienna przetrzymująca obliczone parametry dla wykresu MSE
 start = datetime.datetime.now() # rozpoczęcie pomiaru czasu wykonania skryptu
-for neuron in iloscNeuronow: # dla każdej ilości neuronów w liście
+for przedzial in iloscPrzedzialow: # dla każdej ilości neuronów w liście
     wierszProcentow = list() # zainicjalizuj pusty wektor dla obliczonych danych
     wierszBledow = list() # zainicjalizuj pusty wektor dla obliczonych danych
-    for lr in wspolczynnikUczenia: # dla każdego współczynnika uczenia
+    for epoka in iloscEpok: # dla każdego współczynnika uczenia
         poczatek = datetime.datetime.now() # rozpocznij pomiar czasu dla danej konfiguracji
         copy = deepcopy(zbiorDanych) # utwórz kopię zbioru danych
-        wyniki = ocenAlgorytm(copy, iloscPrzedzialow, neuron, lr, iloscEpok) # uzyskaj wyniki poprawności klasyfikacji dla każdego przedziału
+        wyniki = ocenAlgorytm(copy, przedzial, iloscNeuronow, wspolczynnikUczenia, epoka) # uzyskaj wyniki poprawności klasyfikacji dla każdego przedziału
         koniec = datetime.datetime.now() # zakończ pomiar czasu dla danej konfiguracji
         czasWykonania = round((koniec - poczatek).total_seconds() * 1000) # oblicz czas obliczania danej konfiguracji
         sredniaProcentowa = round((sum(wyniki[0])/float(len(wyniki[0]))),5) # wyciągnij średnią z uzyskanych wyników poprawności klasyfikacji
         sredniaBledu = round((sum(wyniki[1])/float(len(wyniki[1]))),5) # wyciągnij średnią z uzyskanych wyników błędu śreniokwadratowego (MSE)
         wierszProcentow.append(sredniaProcentowa) # do wektora obliczonych srednich dodaj aktualną wartość PK
         wierszBledow.append(sredniaBledu) # do wektora obliczonych srednich dodaj aktualną wartość MSE
-        print('S1:', neuron, ', lr:', lr, ', {0: .3f}%'.format(sredniaProcentowa), ', MSE {0: .3f}'.format(sredniaBledu), ', czas wykonania: ', czasWykonania, 'ms') # wypisz wyniki aktualnej konfiguracji
+        # print('S1:', neuron, ', lr:', lr, ', {0: .3f}%'.format(sredniaProcentowa), ', MSE {0: .3f}'.format(sredniaBledu), ', czas wykonania: ', czasWykonania, 'ms') # wypisz wyniki aktualnej konfiguracji
+        print('Przedzial:', przedzial, ', epoki:', epoka, ', {0: .3f}%'.format(sredniaProcentowa), ', MSE {0: .3f}'.format(sredniaBledu), ', czas wykonania: ', czasWykonania, 'ms') # wypisz wyniki aktualnej konfiguracji
         if sredniaProcentowa > najlepszaDokladnosc: # jeśli aktualny wynik PK jest lepszy od poprzeniego
             najlepszeKombinacjePK = list() # wyczyść liste najlepszych konfiguracji PK
             najlepszaDokladnosc = sredniaProcentowa # przypisz nową najlepszą wartość
-            najlepszeKombinacjePK.append([neuron,lr, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji PK
+            # najlepszeKombinacjePK.append([neuron,lr, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji PK
+            najlepszeKombinacjePK.append([przedzial,epoka, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji PK
         elif len(najlepszeKombinacjePK) > 0 and sredniaProcentowa == najlepszaDokladnosc: # jeśli wynik jest tak samo dobry
-            najlepszeKombinacjePK.append([neuron,lr, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji PK
+            # najlepszeKombinacjePK.append([neuron,lr, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji PK
+            najlepszeKombinacjePK.append([przedzial,epoka,sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji PK
         
         if sredniaBledu < najmniejszyBlad: # jeśli aktualny wynik MSE jest lepszy od poprzeniego
             najlepszeKombinacjeMSE = list() # wyczyść liste najlepszych konfiguracji MSE
             najmniejszyBlad = sredniaBledu # przypisz nową najlepszą wartość
-            najlepszeKombinacjeMSE.append([neuron,lr, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji MSE
+            najlepszeKombinacjeMSE.append([przedzial,epoka, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji MSE
         elif len(najlepszeKombinacjeMSE) > 0 and sredniaBledu == najmniejszyBlad: # jeśli wynik jest tak samo dobry
-            najlepszeKombinacjeMSE.append([neuron,lr, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji MSE
+            najlepszeKombinacjeMSE.append([przedzial,epoka, sredniaProcentowa, sredniaBledu, czasWykonania]) # dodaj aktualną konfigurację do listy najlepszych konfiguracji MSE
 
     zPK.append(wierszProcentow) # dodaj wektor obliczonych danych do listy dla wykresu PK
     zMSE.append(wierszBledow) # dodaj wektor obliczonych danych do listy dla wykresu MSE
@@ -283,7 +286,7 @@ print('najlepsze MSE', najlepszeKombinacjeMSE) # wyświetl najlepsze kofiguracje
 
 zPK = np.array(zPK) # oś Z wykresu PK
 zMSE = np.array(zMSE) # oś Z wykresu PK
-x = np.array(wspolczynnikUczenia) # oś X wykresów
-y = np.array(iloscNeuronow) # oś Y wykresów
+x = np.array(iloscEpok) # oś X wykresów
+y = np.array(iloscPrzedzialow) # oś Y wykresów
 
 rysujGraf(x,y,zPK,zMSE) # narysuj wykres powierzchniowy 3D
