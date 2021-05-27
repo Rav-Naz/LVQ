@@ -72,18 +72,18 @@ def losowyWektorZDanych(daneUczace):
     return daneUczace[randrange(iloscRekordow)] # wylosuj wektor w przedziale
 
 
-def forward(dane, iloscNeuronow, wspUczenia, epoki):
+def forward(daneUczace, iloscNeuronow, wspUczenia, epoki):
     # procedura uczenia zestawu wektorów ze zbioru danych
-    wylosowaneNeurony = [losowyWektorZDanych(dane) for i in range(iloscNeuronow)] # wylosowanie z listy zbiorów podanej ilości neuronow
+    wylosowaneNeurony = [losowyWektorZDanych(daneUczace) for i in range(iloscNeuronow)] # wylosowanie z listy zbiorów podanej ilości neuronow
     for epoch in range(epoki):  # dla podanej ilości epok
         # aktualny współczynnik uczenia
         rate = wspUczenia * (1.0-(epoch/float(epoki)))
-        for wektorTreningowy in dane:  # dla każdego wektora w podanym zbiorze danych
+        for wektorUczacy in daneUczace:  # dla każdego wektora w podanym zbiorze danych
             # dopasuj najlepszy wektor z wylosowanego zbioru neuronów
-            bmu = dopasujNajlepszyWektor(wylosowaneNeurony, wektorTreningowy)
-            for i in range(len(wektorTreningowy)-1):  # dla każdej cechy
-                error = wektorTreningowy[i] - bmu[i]  # oblicz różnicę cech
-                if bmu[-1] == wektorTreningowy[-1]: # jeśli najbliższy neuron dla aktualnego wektora ma taką samą klasę
+            bmu = dopasujNajlepszyWektor(wylosowaneNeurony, wektorUczacy)
+            for i in range(len(wektorUczacy)-1):  # dla każdej cechy
+                error = wektorUczacy[i] - bmu[i]  # oblicz różnicę cech
+                if bmu[-1] == wektorUczacy[-1]: # jeśli najbliższy neuron dla aktualnego wektora ma taką samą klasę
                     bmu[i] += rate * error # to przybliż neuron do wektora
                 else:
                     bmu[i] -= rate * error  # to oddal neuron od wektora
